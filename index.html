@@ -1,0 +1,2789 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>LOVE & 勇气 · 品牌之书</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Noto+Serif+SC:wght@300;400;500;700;900&family=ZCOOL+XiaoWei&family=Caveat:wght@400;600&display=swap" rel="stylesheet" />
+<style>
+/* =========================================================
+   设计令牌
+========================================================= */
+:root {
+  --cream: #FAF4E8;
+  --cream-deep: #F2E9D8;
+  --cream-darker: #EADFC8;
+  --paper: #FDFAF2;
+  --paper-edge: #EDE3CE;
+
+  --ink: #3D2E22;
+  --ink-soft: #6B5645;
+  --ink-faint: #A08970;
+
+  --love: #D88891;
+  --love-mid: #E8A8AE;
+  --love-light: #F4CACF;
+  --love-bg: #FAE4E6;
+  --love-deep: #A85560;
+
+  --courage: #6B8AAF;
+  --courage-mid: #8FA8C5;
+  --courage-light: #B8C8DC;
+  --courage-bg: #DDE6F0;
+  --courage-deep: #3E5A7A;
+
+  --gold: #C89D5C;
+  --gold-soft: #E6C992;
+  --gold-deep: #9C7640;
+
+  --ff-serif: "Noto Serif SC", "Source Han Serif SC", "Songti SC", serif;
+  --ff-display: "Fraunces", "Noto Serif SC", serif;
+  --ff-brush: "ZCOOL XiaoWei", "Noto Serif SC", serif;
+  --ff-hand: "Caveat", "ZCOOL XiaoWei", cursive;
+
+  --shadow-book: 0 30px 80px -20px rgba(61, 46, 34, 0.35), 0 10px 30px -10px rgba(61, 46, 34, 0.2);
+  --shadow-page: 0 2px 8px rgba(61, 46, 34, 0.08);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: #2A2018;
+  font-family: var(--ff-serif);
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* =========================================================
+   背景:书桌氛围(深色木纹 + 光晕)
+========================================================= */
+.desk {
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 50% 45%, #3d2f24 0%, #2a2018 55%, #1a130d 100%),
+    #2a2018;
+  overflow: hidden;
+}
+.desk::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.45 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  opacity: 0.35;
+  mix-blend-mode: overlay;
+}
+.desk::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120%; height: 70%;
+  background: radial-gradient(ellipse, rgba(255, 220, 170, 0.12), transparent 60%);
+  pointer-events: none;
+}
+
+/* =========================================================
+   书籍容器
+========================================================= */
+.book-stage {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 60px 90px;
+  z-index: 2;
+}
+
+.book {
+  /* 让书占满可用空间,字号/间距随视口缩放 */
+  --page-w: min(480px, calc((100vw - 160px) / 2));
+  --page-h: min(720px, calc(100vh - 150px));
+  width: calc(var(--page-w) * 2);
+  height: var(--page-h);
+  position: relative;
+  display: flex;
+  perspective: 2400px;
+  filter: drop-shadow(0 30px 60px rgba(0,0,0,0.4));
+}
+
+/* 书脊 */
+.book::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: -6px; bottom: -6px;
+  width: 2px;
+  transform: translateX(-50%);
+  background: linear-gradient(to bottom, transparent, rgba(0,0,0,0.45) 20%, rgba(0,0,0,0.45) 80%, transparent);
+  z-index: 10;
+  pointer-events: none;
+}
+
+/* 左右页槽:展示层 */
+.spread {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+}
+
+.page-slot {
+  width: var(--page-w);
+  height: 100%;
+  position: relative;
+  background: var(--paper);
+  box-shadow: var(--shadow-book);
+  overflow: hidden;
+}
+
+.slot-left {
+  border-radius: 4px 0 0 4px;
+  box-shadow: inset -20px 0 30px -20px rgba(0,0,0,0.18), var(--shadow-book);
+}
+.slot-right {
+  border-radius: 0 4px 4px 0;
+  box-shadow: inset 20px 0 30px -20px rgba(0,0,0,0.18), var(--shadow-book);
+}
+
+/* 页面本体 */
+.page {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  /* 关键:用 vh/vw 让 padding 适配视口 */
+  padding: clamp(20px, 4.5vh, 44px) clamp(20px, 3.8vh, 42px);
+  overflow: hidden;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.45s ease;
+  /* 全局尺寸基准:小屏 ~12px,大屏 ~14.5px */
+  --fs-body: clamp(11.5px, 1.55vh, 14px);
+  --fs-small: clamp(10.5px, 1.4vh, 12.5px);
+  --fs-tiny: clamp(9px, 1.15vh, 11px);
+  --fs-h: clamp(20px, 3.2vh, 28px);
+  --fs-h-big: clamp(28px, 4.8vh, 42px);
+  --fs-h-cover: clamp(36px, 6.5vh, 54px);
+  --fs-pull: clamp(15px, 2.1vh, 19px);
+  --fs-letter-emph: clamp(14px, 1.95vh, 17px);
+  --gap-y: clamp(8px, 1.15vh, 14px);
+  --gap-y-lg: clamp(14px, 2.2vh, 22px);
+  --gap-block: clamp(18px, 3vh, 28px);
+}
+.page.active {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* 纸张纹理 */
+.page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.18 0 0 0 0 0.13 0 0 0 0.08 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  opacity: 0.5;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+/* 翻页动画层 */
+.flipper {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: var(--page-w);
+  perspective: 2400px;
+  z-index: 20;
+  pointer-events: none;
+  visibility: hidden;  /* 默认隐藏,避免遮挡底下的页面 */
+}
+.flipper.flipping { visibility: visible; }
+.flipper-right { right: 0; transform-origin: left center; }
+.flipper-left  { left: 0; transform-origin: right center; }
+
+.flip-page {
+  position: absolute;
+  inset: 0;
+  background: var(--paper);
+  backface-visibility: hidden;
+  transition: transform 0.7s cubic-bezier(0.35, 0.05, 0.3, 0.95);
+  box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+  overflow: hidden;
+  padding: clamp(20px, 4.5vh, 44px) clamp(20px, 3.8vh, 42px);
+  transform: rotateY(0deg);
+}
+.flip-page::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml;utf8,<svg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.24 0 0 0 0 0.18 0 0 0 0 0.13 0 0 0 0.08 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+  opacity: 0.5;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+}
+
+.flipper-right .flip-page {
+  transform-origin: left center;
+  border-radius: 0 4px 4px 0;
+}
+.flipper-left .flip-page {
+  transform-origin: right center;
+  border-radius: 4px 0 0 4px;
+}
+
+.flipper-right.flipping .flip-page { transform: rotateY(-180deg); }
+.flipper-left.flipping .flip-page { transform: rotateY(180deg); }
+
+/* =========================================================
+   翻页按钮
+========================================================= */
+.nav-btn {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 52px; height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(200, 157, 92, 0.35);
+  background: rgba(250, 244, 232, 0.08);
+  backdrop-filter: blur(10px);
+  color: var(--cream);
+  cursor: pointer;
+  z-index: 50;
+  transition: all 0.3s cubic-bezier(0.2, 0.6, 0.2, 1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav-btn:hover:not(:disabled) {
+  background: rgba(200, 157, 92, 0.2);
+  border-color: var(--gold);
+  color: #fff;
+  transform: translateY(-50%) scale(1.08);
+}
+.nav-btn:disabled {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+.nav-btn.prev { left: 24px; }
+.nav-btn.next { right: 24px; }
+
+.nav-btn svg { width: 20px; height: 20px; }
+
+/* =========================================================
+   底部控制栏
+========================================================= */
+.bottombar {
+  position: fixed;
+  left: 50%;
+  bottom: 20px;
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 10px 24px;
+  background: rgba(26, 19, 13, 0.75);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(200, 157, 92, 0.25);
+  border-radius: 100px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+}
+
+.bottombar-btn {
+  background: none;
+  border: none;
+  color: var(--cream);
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.25s, color 0.25s;
+}
+.bottombar-btn:hover { opacity: 1; color: var(--gold-soft); }
+.bottombar-btn.active { color: var(--gold); opacity: 1; }
+.bottombar-btn svg { width: 18px; height: 18px; }
+
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--cream);
+}
+
+.progress-bar {
+  width: 140px;
+  height: 2px;
+  background: rgba(250, 244, 232, 0.15);
+  border-radius: 2px;
+  overflow: hidden;
+  position: relative;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(to right, var(--gold-soft), var(--gold));
+  width: 0%;
+  transition: width 0.6s cubic-bezier(0.2, 0.6, 0.2, 1);
+}
+
+.page-counter {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--cream);
+  opacity: 0.75;
+  letter-spacing: 0.08em;
+  white-space: nowrap;
+  min-width: 56px;
+  text-align: center;
+}
+
+.divider-v {
+  width: 1px;
+  height: 20px;
+  background: rgba(250, 244, 232, 0.15);
+}
+
+/* =========================================================
+   目录面板
+========================================================= */
+.toc-panel {
+  position: fixed;
+  top: 0; left: 0;
+  width: 380px; height: 100%;
+  background: linear-gradient(180deg, #2a2018, #1f1610);
+  border-right: 1px solid rgba(200, 157, 92, 0.25);
+  box-shadow: 8px 0 40px rgba(0,0,0,0.5);
+  z-index: 100;
+  transform: translateX(-100%);
+  transition: transform 0.55s cubic-bezier(0.2, 0.6, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  padding: 48px 36px 36px;
+}
+.toc-panel.open { transform: translateX(0); }
+
+.toc-header {
+  margin-bottom: 32px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.toc-title {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 0.4em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.toc-subtitle {
+  font-family: var(--ff-brush);
+  font-size: 22px;
+  color: var(--cream);
+  letter-spacing: 0.1em;
+}
+.toc-close {
+  background: none;
+  border: none;
+  color: var(--cream);
+  opacity: 0.7;
+  cursor: pointer;
+  padding: 4px;
+}
+.toc-close:hover { opacity: 1; }
+
+.toc-list {
+  flex: 1;
+  overflow-y: auto;
+  list-style: none;
+  padding-right: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(200,157,92,0.3) transparent;
+}
+.toc-list::-webkit-scrollbar { width: 5px; }
+.toc-list::-webkit-scrollbar-thumb { background: rgba(200,157,92,0.3); border-radius: 3px; }
+
+.toc-part {
+  margin-top: 24px;
+  margin-bottom: 10px;
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.35em;
+  color: var(--gold);
+  text-transform: uppercase;
+  opacity: 0.8;
+}
+.toc-part:first-child { margin-top: 0; }
+
+.toc-item {
+  cursor: pointer;
+  padding: 10px 14px;
+  margin-left: -14px;
+  border-radius: 6px;
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  color: rgba(250, 244, 232, 0.75);
+  transition: all 0.25s;
+  font-size: 14.5px;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+}
+.toc-item:hover {
+  color: var(--cream);
+  background: rgba(200, 157, 92, 0.08);
+}
+.toc-item.current {
+  color: var(--gold-soft);
+  background: rgba(200, 157, 92, 0.12);
+}
+.toc-num {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 12px;
+  opacity: 0.6;
+  min-width: 26px;
+}
+
+.toc-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.4);
+  backdrop-filter: blur(4px);
+  z-index: 99;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.4s;
+}
+.toc-backdrop.show {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* =========================================================
+   页内样式
+========================================================= */
+.page-inner {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* 页眉 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+  border-bottom: 1px solid var(--cream-darker);
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 10.5px;
+  letter-spacing: 0.3em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+.page-header .header-brand { color: var(--gold); }
+
+.page-footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid var(--cream-darker);
+  display: flex;
+  justify-content: center;
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 10.5px;
+  letter-spacing: 0.3em;
+  color: var(--ink-faint);
+}
+
+.page-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 6px 0;
+  transform-origin: top center;
+}
+
+/* 章节标题 */
+.chapter-label {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.chapter-label .line { width: 24px; height: 1px; background: var(--gold); }
+.chapter-label .num {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 10.5px;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+
+.chapter-title {
+  font-family: var(--ff-brush);
+  font-weight: 400;
+  font-size: clamp(20px, 2.95vh, 26px);
+  color: var(--ink);
+  text-align: center;
+  line-height: 1.35;
+  letter-spacing: 0.06em;
+  margin-bottom: clamp(12px, 2.2vh, 20px);
+}
+.chapter-title .accent { color: var(--gold); }
+
+/* 散文 */
+.prose {
+  font-size: clamp(11.5px, 1.55vh, 13.5px);
+  line-height: 1.85;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+.prose p { margin-bottom: clamp(6px, 1vh, 10px); }
+.prose p.gap { margin-bottom: clamp(12px, 2vh, 18px); }
+.prose strong { font-weight: 700; color: var(--ink); }
+
+/* 引文 */
+.pullquote {
+  font-family: var(--ff-brush);
+  font-size: clamp(14px, 1.95vh, 17px);
+  color: var(--gold-deep);
+  text-align: center;
+  padding: clamp(8px, 1.4vh, 14px) 10px;
+  margin: clamp(8px, 1.4vh, 12px) 0;
+  line-height: 1.7;
+  letter-spacing: 0.08em;
+}
+.pullquote::before, .pullquote::after {
+  content: '✦';
+  display: block;
+  color: var(--gold);
+  font-size: 11px;
+  margin: clamp(4px, 0.8vh, 8px) auto;
+}
+
+/* 装饰分隔线 */
+.orn-div {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--gold);
+}
+.orn-div .line {
+  flex: 1;
+  max-width: 70px;
+  height: 1px;
+  background: linear-gradient(to right, transparent, var(--gold), transparent);
+}
+.orn-div .sym { font-size: 11px; letter-spacing: 0.3em; }
+
+/* =========================================================
+   封面
+========================================================= */
+.cover-page .page-inner {
+  background:
+    radial-gradient(ellipse at 30% 20%, var(--love-bg) 0%, transparent 55%),
+    radial-gradient(ellipse at 70% 80%, var(--courage-bg) 0%, transparent 55%),
+    linear-gradient(135deg, #FDF7EA, #F5E9D2);
+  border-radius: 2px;
+  margin: -42px -42px;
+  padding: 50px 42px;
+  justify-content: space-between;
+  position: relative;
+}
+.cover-page .page-inner::before {
+  content: '';
+  position: absolute;
+  inset: 24px;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0.4;
+}
+.cover-page .page-inner::after {
+  content: '';
+  position: absolute;
+  inset: 30px;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0.2;
+}
+
+.cover-top, .cover-bottom {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+}
+
+.cover-label {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.5em;
+  color: var(--gold-deep);
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.cover-divider {
+  width: 1px;
+  height: 40px;
+  background: linear-gradient(to bottom, transparent, var(--gold), transparent);
+  margin: 0 auto 20px;
+}
+
+.cover-main {
+  text-align: center;
+  position: relative;
+  z-index: 1;
+}
+
+.cover-title {
+  font-family: var(--ff-display);
+  font-weight: 300;
+  font-size: 54px;
+  line-height: 1;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+  margin-bottom: 14px;
+}
+.cover-title .love-w { color: var(--love-deep); }
+.cover-title .amp {
+  font-style: italic;
+  color: var(--gold);
+  font-weight: 400;
+  margin: 0 0.1em;
+}
+.cover-title .courage-w {
+  color: var(--courage-deep);
+  font-family: var(--ff-serif);
+  font-weight: 400;
+  font-size: 0.75em;
+  display: inline-block;
+  transform: translateY(-0.05em);
+}
+
+.cover-sub {
+  font-family: var(--ff-brush);
+  font-size: 20px;
+  color: var(--ink-soft);
+  letter-spacing: 0.15em;
+  margin-bottom: 32px;
+}
+
+.cover-ornament {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 12px;
+  letter-spacing: 0.3em;
+  color: var(--gold-deep);
+  text-transform: uppercase;
+}
+
+.cover-mark {
+  font-family: var(--ff-hand);
+  font-size: 20px;
+  color: var(--gold-deep);
+  letter-spacing: 0.05em;
+}
+
+/* 封面装饰图案 */
+.cover-flourish {
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  z-index: 0;
+  opacity: 0.4;
+}
+.cover-flourish.top-right { top: 50px; right: 50px; }
+.cover-flourish.bottom-left { bottom: 50px; left: 50px; transform: rotate(180deg); }
+
+/* =========================================================
+   扉页
+========================================================= */
+.title-page .page-content {
+  justify-content: center;
+  text-align: center;
+}
+.title-page .dedication {
+  font-family: var(--ff-brush);
+  font-size: 22px;
+  color: var(--ink);
+  letter-spacing: 0.12em;
+  line-height: 1.9;
+  margin-bottom: 40px;
+}
+.title-page .dedication em {
+  font-style: normal;
+  color: var(--gold-deep);
+  font-weight: 600;
+}
+
+.title-page .opening-poem {
+  font-family: var(--ff-serif);
+  font-size: 14px;
+  line-height: 2.3;
+  color: var(--ink-soft);
+  letter-spacing: 0.05em;
+  max-width: 280px;
+  margin: 0 auto;
+}
+.title-page .opening-poem em {
+  font-style: normal;
+  color: var(--ink);
+  font-weight: 500;
+  background: linear-gradient(transparent 68%, var(--love-light) 68%, var(--love-light) 92%, transparent 92%);
+  padding: 0 2px;
+}
+
+.title-page .signature {
+  margin-top: 50px;
+  font-family: var(--ff-hand);
+  font-size: 20px;
+  color: var(--gold);
+  letter-spacing: 0.05em;
+}
+
+/* =========================================================
+   目录页
+========================================================= */
+.toc-page-content {
+  padding: 6px 0;
+}
+.toc-page-title {
+  font-family: var(--ff-brush);
+  font-size: 32px;
+  color: var(--ink);
+  text-align: center;
+  letter-spacing: 0.15em;
+  margin-bottom: 8px;
+}
+.toc-page-sub {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 12px;
+  text-align: center;
+  color: var(--gold);
+  letter-spacing: 0.35em;
+  text-transform: uppercase;
+  margin-bottom: 28px;
+}
+
+.toc-page-group { margin-bottom: 18px; }
+.toc-page-group-title {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 11px;
+  color: var(--gold-deep);
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px dashed var(--cream-darker);
+}
+
+.toc-page-entry {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 6px 0;
+  cursor: pointer;
+  transition: color 0.25s;
+  color: var(--ink);
+  font-size: 13.5px;
+  letter-spacing: 0.05em;
+}
+.toc-page-entry:hover { color: var(--gold-deep); }
+
+.toc-page-entry .name { position: relative; padding-right: 10px; background: var(--paper); }
+.toc-page-entry .pageno {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 12px;
+  color: var(--ink-faint);
+  padding-left: 10px;
+  background: var(--paper);
+  position: relative;
+  z-index: 1;
+}
+.toc-page-entry .dots {
+  flex: 1;
+  border-bottom: 1px dotted var(--ink-faint);
+  margin-bottom: 4px;
+  opacity: 0.5;
+}
+
+/* =========================================================
+   Part 扉页
+========================================================= */
+.part-page .page-content {
+  justify-content: center;
+  text-align: center;
+}
+.part-page .part-num {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 13px;
+  letter-spacing: 0.5em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+.part-page .part-title {
+  font-family: var(--ff-brush);
+  font-size: 42px;
+  color: var(--ink);
+  letter-spacing: 0.1em;
+  margin-bottom: 14px;
+  line-height: 1.3;
+}
+.part-page .part-sub {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-soft);
+  letter-spacing: 0.15em;
+  margin-bottom: 24px;
+}
+.part-page .part-ornaments {
+  color: var(--gold);
+  font-size: 13px;
+  letter-spacing: 0.5em;
+  margin-bottom: 24px;
+}
+.part-page .part-intro {
+  font-size: 13.5px;
+  line-height: 2;
+  color: var(--ink-soft);
+  letter-spacing: 0.04em;
+  max-width: 320px;
+  margin: 0 auto;
+  font-style: italic;
+}
+
+/* =========================================================
+   法器卡片
+========================================================= */
+.artifact-card {
+  padding: 28px 26px;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.artifact-love {
+  background: linear-gradient(165deg, var(--love-bg) 0%, #FBEDEE 100%);
+  border: 1px solid var(--love-light);
+}
+.artifact-courage {
+  background: linear-gradient(165deg, var(--courage-bg) 0%, #E8EEF5 100%);
+  border: 1px solid var(--courage-light);
+}
+.artifact-card::before {
+  content: '';
+  position: absolute;
+  top: -50px; right: -50px;
+  width: 140px; height: 140px;
+  border-radius: 50%;
+  opacity: 0.3;
+}
+.artifact-love::before {
+  background: radial-gradient(circle, var(--love-mid), transparent 70%);
+}
+.artifact-courage::before {
+  background: radial-gradient(circle, var(--courage-mid), transparent 70%);
+}
+.artifact-symbol {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 30px;
+  line-height: 1;
+  margin-bottom: 10px;
+}
+.artifact-love .artifact-symbol { color: var(--love-deep); }
+.artifact-courage .artifact-symbol { color: var(--courage-deep); }
+
+.artifact-name {
+  font-family: var(--ff-brush);
+  font-size: 22px;
+  letter-spacing: 0.1em;
+  margin-bottom: 3px;
+  line-height: 1.3;
+}
+.artifact-love .artifact-name { color: var(--love-deep); }
+.artifact-courage .artifact-name { color: var(--courage-deep); }
+
+.artifact-stone {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.2em;
+  color: var(--ink-soft);
+  margin-bottom: 14px;
+}
+.artifact-body {
+  font-size: 12.5px;
+  line-height: 1.8;
+  color: var(--ink);
+}
+.artifact-body p { margin-bottom: 8px; }
+.artifact-body strong { display: inline-block; padding: 0 3px; }
+.artifact-love .artifact-body strong {
+  background: linear-gradient(transparent 62%, var(--love-light) 62%);
+}
+.artifact-courage .artifact-body strong {
+  background: linear-gradient(transparent 62%, var(--courage-light) 62%);
+}
+
+/* 一对 */
+.pair-box {
+  background: linear-gradient(160deg, var(--paper), var(--cream));
+  border: 1px solid var(--gold-soft);
+  border-radius: 8px;
+  padding: 24px 22px;
+  margin-top: 12px;
+  text-align: center;
+  position: relative;
+}
+.pair-box::before, .pair-box::after {
+  content: '❋';
+  position: absolute;
+  font-size: 13px;
+  color: var(--gold-soft);
+}
+.pair-box::before { top: 10px; left: 12px; }
+.pair-box::after { bottom: 10px; right: 12px; }
+
+.pair-box p {
+  font-size: 13px;
+  line-height: 2;
+  margin-bottom: 4px;
+  letter-spacing: 0.04em;
+}
+.pair-box p:last-child {
+  margin-top: 10px;
+  font-family: var(--ff-brush);
+  font-size: 17px;
+  color: var(--gold-deep);
+  letter-spacing: 0.08em;
+}
+.pair-box .love-text { color: var(--love-deep); font-weight: 500; }
+.pair-box .courage-text { color: var(--courage-deep); font-weight: 500; }
+
+/* 双熊 */
+.bears-visual {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 20px;
+  margin: 12px 0 16px;
+}
+.bear-figure { text-align: center; }
+.bear-svg {
+  width: 84px; height: 84px;
+  margin-bottom: 8px;
+  filter: drop-shadow(0 6px 12px rgba(61, 46, 34, 0.1));
+}
+.bear-label {
+  font-family: var(--ff-brush);
+  font-size: 15px;
+  letter-spacing: 0.15em;
+}
+.bear-love .bear-label { color: var(--love-deep); }
+.bear-courage .bear-label { color: var(--courage-deep); }
+
+/* 叙事核心卡片 */
+.core-card {
+  background: linear-gradient(160deg, var(--paper), var(--cream));
+  border: 1px solid var(--gold-soft);
+  border-radius: 8px;
+  padding: 26px 24px;
+  position: relative;
+  box-shadow: var(--shadow-page);
+}
+.core-card::before {
+  content: '';
+  position: absolute;
+  top: 8px; left: 8px; right: 8px; bottom: 8px;
+  border: 1px solid var(--gold-soft);
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0.4;
+}
+.core-card-inner { position: relative; z-index: 1; }
+.core-card-stamp {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 9.5px;
+  letter-spacing: 0.35em;
+  color: var(--gold-deep);
+  text-transform: uppercase;
+  text-align: center;
+  margin-bottom: 12px;
+}
+.core-card p {
+  font-size: 12.5px;
+  line-height: 1.8;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.core-card .closing {
+  text-align: center;
+  margin-top: 14px;
+  font-family: var(--ff-brush);
+  font-size: 16px;
+  color: var(--gold-deep);
+  letter-spacing: 0.1em;
+  line-height: 1.65;
+}
+
+/* =========================================================
+   起源故事页
+========================================================= */
+.story-page .page-content {
+  justify-content: flex-start;
+  padding-top: 8px;
+}
+.story-header {
+  text-align: center;
+  margin-bottom: 14px;
+}
+.story-header .tag {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 10.5px;
+  letter-spacing: 0.35em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+.story-header .title {
+  font-family: var(--ff-brush);
+  font-size: 22px;
+  color: var(--ink);
+  letter-spacing: 0.08em;
+}
+
+.story-prose {
+  font-size: clamp(11px, 1.45vh, 12.5px);
+  line-height: 1.85;
+  color: var(--ink);
+}
+.story-prose p { margin-bottom: clamp(6px, 1vh, 9px); }
+.story-prose .first-para::first-letter {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 3.4em;
+  float: left;
+  line-height: 0.8;
+  padding: 4px 8px 0 0;
+  color: var(--gold-deep);
+}
+.story-prose .dramatic {
+  font-family: var(--ff-brush);
+  font-size: clamp(13px, 1.85vh, 16px);
+  color: var(--gold-deep);
+  text-align: center;
+  padding: clamp(6px, 1.1vh, 10px) 0;
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+}
+.story-prose strong { font-weight: 700; color: var(--ink); }
+.story-break {
+  text-align: center;
+  margin: clamp(8px, 1.6vh, 14px) 0;
+  color: var(--gold);
+  font-size: 11px;
+  letter-spacing: 0.6em;
+}
+
+/* =========================================================
+   信件页
+========================================================= */
+.letter-page .page-content { justify-content: flex-start; padding-top: 6px; }
+.letter-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--cream-darker);
+}
+.letter-meta {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 9.5px;
+  letter-spacing: 0.3em;
+  color: var(--gold);
+  text-transform: uppercase;
+}
+.letter-title {
+  font-family: var(--ff-brush);
+  font-size: 20px;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  margin-top: 3px;
+  line-height: 1.3;
+}
+.letter-stamp {
+  font-family: var(--ff-hand);
+  font-size: 16px;
+  color: var(--gold);
+  writing-mode: vertical-rl;
+  letter-spacing: 0.1em;
+  opacity: 0.7;
+  white-space: nowrap;
+}
+.letter-body {
+  font-size: clamp(11px, 1.45vh, 12.5px);
+  line-height: 1.78;
+  color: var(--ink);
+}
+.letter-body p { margin-bottom: clamp(5px, 0.85vh, 7px); }
+.letter-body strong { font-weight: 600; }
+.letter-body .emphasis {
+  font-family: var(--ff-brush);
+  font-size: clamp(13px, 1.7vh, 15px);
+  color: var(--gold-deep);
+  text-align: center;
+  padding: clamp(4px, 0.7vh, 6px) 0;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+.letter-sign {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--cream-darker);
+  text-align: right;
+  font-family: var(--ff-hand);
+  font-size: 16px;
+  color: var(--ink-soft);
+  letter-spacing: 0.05em;
+}
+.letter-love-accent { color: var(--love-deep); }
+.letter-courage-accent { color: var(--courage-deep); }
+
+/* =========================================================
+   独白页
+========================================================= */
+.monologue-page .page-inner {
+  margin: -42px -42px;
+  padding: 42px 42px;
+}
+.monologue-page.love-bg .page-inner {
+  background: linear-gradient(165deg, rgba(250, 228, 230, 0.6), rgba(253, 242, 243, 0.4));
+}
+.monologue-page.courage-bg .page-inner {
+  background: linear-gradient(165deg, rgba(221, 230, 240, 0.6), rgba(240, 245, 250, 0.4));
+}
+.monologue-page .page-content {
+  justify-content: flex-start;
+  padding-top: 4px;
+}
+
+.mon-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.mon-icon { width: 46px; height: 46px; }
+.mon-tag {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 9.5px;
+  letter-spacing: 0.3em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.monologue-page.love-bg .mon-tag { color: var(--love-deep); }
+.monologue-page.courage-bg .mon-tag { color: var(--courage-deep); }
+.mon-name {
+  font-family: var(--ff-brush);
+  font-size: 20px;
+  letter-spacing: 0.1em;
+}
+.monologue-page.love-bg .mon-name { color: var(--love-deep); }
+.monologue-page.courage-bg .mon-name { color: var(--courage-deep); }
+
+.mon-body {
+  font-size: clamp(11px, 1.45vh, 12.5px);
+  line-height: 1.78;
+  color: var(--ink);
+  font-style: italic;
+  font-family: var(--ff-display);
+  font-weight: 400;
+}
+.mon-body .zh {
+  font-family: var(--ff-serif);
+  font-style: normal;
+}
+.mon-body p { margin-bottom: clamp(5px, 0.95vh, 8px); }
+.mon-body .whisper {
+  font-family: var(--ff-brush);
+  font-size: clamp(13px, 1.7vh, 15px);
+  font-style: normal;
+  text-align: center;
+  padding: clamp(5px, 0.95vh, 8px) 0;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
+.monologue-page.love-bg .mon-body .whisper { color: var(--love-deep); }
+.monologue-page.courage-bg .mon-body .whisper { color: var(--courage-deep); }
+.mon-body strong { font-weight: 600; }
+.mon-break {
+  text-align: center;
+  font-size: 10.5px;
+  letter-spacing: 0.6em;
+  margin: 10px 0;
+}
+.monologue-page.love-bg .mon-break { color: var(--love-mid); }
+.monologue-page.courage-bg .mon-break { color: var(--courage-mid); }
+.mon-sign {
+  margin-top: 10px;
+  text-align: right;
+  font-family: var(--ff-hand);
+  font-size: 18px;
+  letter-spacing: 0.05em;
+}
+.monologue-page.love-bg .mon-sign { color: var(--love-deep); }
+.monologue-page.courage-bg .mon-sign { color: var(--courage-deep); }
+
+/* =========================================================
+   结语 & 封底
+========================================================= */
+.ending-page .page-content {
+  justify-content: center;
+  text-align: center;
+}
+.ending-motto {
+  font-family: var(--ff-brush);
+  font-size: 22px;
+  color: var(--ink);
+  letter-spacing: 0.1em;
+  line-height: 2;
+  margin-bottom: 24px;
+}
+.ending-motto .soft { color: var(--ink-soft); }
+.ending-motto .love { color: var(--love-deep); }
+.ending-motto .courage { color: var(--courage-deep); }
+
+.ending-sig {
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.4em;
+  color: var(--gold);
+  text-transform: uppercase;
+  margin-top: 24px;
+}
+.ending-sig::before, .ending-sig::after {
+  content: '· ';
+  color: var(--gold-soft);
+}
+
+.backcover-page .page-inner {
+  background:
+    radial-gradient(ellipse at 70% 30%, var(--courage-bg) 0%, transparent 55%),
+    radial-gradient(ellipse at 30% 70%, var(--love-bg) 0%, transparent 55%),
+    linear-gradient(135deg, #FDF7EA, #F5E9D2);
+  border-radius: 2px;
+  margin: -42px -42px;
+  padding: 50px 42px;
+  justify-content: space-between;
+  position: relative;
+}
+.backcover-page .page-inner::before {
+  content: '';
+  position: absolute;
+  inset: 24px;
+  border: 1px solid var(--gold);
+  border-radius: 2px;
+  pointer-events: none;
+  opacity: 0.4;
+}
+.backcover-page .page-content {
+  text-align: center;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+
+.backcover-mark {
+  font-family: var(--ff-display);
+  font-weight: 300;
+  font-size: 36px;
+  color: var(--ink);
+  margin-bottom: 14px;
+  letter-spacing: -0.01em;
+}
+.backcover-mark .amp { font-style: italic; color: var(--gold); }
+.backcover-mark .love { color: var(--love-deep); }
+.backcover-mark .courage {
+  font-family: var(--ff-serif);
+  font-size: 0.72em;
+  color: var(--courage-deep);
+}
+.backcover-text {
+  font-family: var(--ff-brush);
+  font-size: 18px;
+  color: var(--ink-soft);
+  letter-spacing: 0.12em;
+  line-height: 1.9;
+  max-width: 260px;
+  margin: 0 auto;
+}
+.backcover-stamp {
+  position: absolute;
+  bottom: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: var(--ff-hand);
+  font-size: 18px;
+  color: var(--gold-deep);
+  letter-spacing: 0.1em;
+  z-index: 2;
+}
+
+/* =========================================================
+   提示 & 键盘帮助
+========================================================= */
+.hint {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 40;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 14px;
+  background: rgba(26, 19, 13, 0.6);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(200, 157, 92, 0.2);
+  border-radius: 100px;
+  font-family: var(--ff-display);
+  font-style: italic;
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: rgba(250, 244, 232, 0.6);
+  opacity: 0;
+  animation: hintFade 1s 1s forwards, hintOut 1s 5s forwards;
+  pointer-events: none;
+}
+.hint kbd {
+  display: inline-block;
+  padding: 1px 6px;
+  margin: 0 2px;
+  background: rgba(250, 244, 232, 0.1);
+  border: 1px solid rgba(250, 244, 232, 0.2);
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 10px;
+}
+
+@keyframes hintFade { to { opacity: 1; } }
+@keyframes hintOut { to { opacity: 0; } }
+
+/* =========================================================
+   响应式 · 手机单页
+========================================================= */
+@media (max-width: 900px) {
+  .book-stage { padding: 60px 12px 90px; }
+  .book {
+    --page-w: min(calc(100vw - 24px), 420px);
+    --page-h: calc(100vh - 150px);
+    width: var(--page-w);
+  }
+  .book::before { display: none; }
+  .spread { width: 100%; }
+  .slot-left { display: none; }
+  .slot-right {
+    width: 100%;
+    border-radius: 4px;
+    box-shadow: var(--shadow-book);
+  }
+  .flipper-left { display: none; }
+  .flipper-right { width: 100%; }
+
+  .page { padding: 32px 24px; }
+  .cover-page .page-inner,
+  .monologue-page .page-inner,
+  .backcover-page .page-inner { margin: -32px -24px; padding: 40px 24px; }
+  .cover-page .page-inner::before,
+  .backcover-page .page-inner::before { inset: 14px; }
+  .cover-page .page-inner::after { inset: 20px; }
+
+  .cover-title { font-size: 44px; }
+  .chapter-title { font-size: 26px; }
+  .part-page .part-title { font-size: 36px; }
+
+  .nav-btn { width: 44px; height: 44px; }
+  .nav-btn.prev { left: 10px; }
+  .nav-btn.next { right: 10px; }
+
+  .bottombar { padding: 8px 16px; gap: 14px; bottom: 14px; }
+  .progress-bar { width: 90px; }
+  .page-counter { font-size: 11px; min-width: 48px; }
+
+  .toc-panel { width: 85%; max-width: 340px; padding: 40px 28px; }
+
+  .hint { top: 14px; right: 14px; padding: 6px 10px; font-size: 10px; }
+  .hint kbd { display: none; }
+}
+
+@media (max-width: 500px) {
+  .cover-title { font-size: 38px; }
+  .part-page .part-title { font-size: 30px; }
+  .page { padding: 32px 22px; }
+}
+
+/* 隐藏页在移动端也要消失不占空间 */
+@media (max-width: 900px) {
+  .page.hidden-mobile { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- 书桌背景 -->
+<div class="desk"></div>
+
+<!-- 小提示 -->
+<div class="hint">
+  翻页 <kbd>←</kbd> <kbd>→</kbd> · 目录 <kbd>M</kbd>
+</div>
+
+<!-- 目录侧栏 -->
+<div class="toc-backdrop" id="tocBackdrop"></div>
+<aside class="toc-panel" id="tocPanel">
+  <div class="toc-header">
+    <div>
+      <div class="toc-title">Table of Contents</div>
+      <div class="toc-subtitle">目 录</div>
+    </div>
+    <button class="toc-close" id="tocClose" aria-label="关闭目录">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M18 6L6 18M6 6l12 12"/></svg>
+    </button>
+  </div>
+  <ul class="toc-list" id="tocList">
+    <!-- 由 JS 生成 -->
+  </ul>
+</aside>
+
+<!-- 左右翻页按钮 -->
+<button class="nav-btn prev" id="prevBtn" aria-label="上一页">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+</button>
+<button class="nav-btn next" id="nextBtn" aria-label="下一页">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+</button>
+
+<!-- 底部控制栏 -->
+<div class="bottombar">
+  <button class="bottombar-btn" id="tocBtn" aria-label="目录" title="目录 (M)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="3.5" cy="6" r="1"/><circle cx="3.5" cy="12" r="1"/><circle cx="3.5" cy="18" r="1"/></svg>
+  </button>
+
+  <div class="divider-v"></div>
+
+  <div class="progress-wrap">
+    <div class="page-counter" id="pageCounter">— / —</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill"></div>
+    </div>
+  </div>
+
+  <div class="divider-v"></div>
+
+  <button class="bottombar-btn" id="soundBtn" aria-label="音效" title="翻页音效">
+    <svg id="soundOn" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+    <svg id="soundOff" style="display:none" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+  </button>
+
+  <button class="bottombar-btn" id="bookmarkBtn" aria-label="书签" title="书签">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+  </button>
+</div>
+
+<!-- 书 -->
+<div class="book-stage">
+  <div class="book" id="book">
+    <div class="spread">
+      <!-- 左页槽 -->
+      <div class="page-slot slot-left" id="slotLeft">
+        <!-- 左页由 JS 渲染 -->
+      </div>
+      <!-- 右页槽 -->
+      <div class="page-slot slot-right" id="slotRight">
+        <!-- 右页由 JS 渲染 -->
+      </div>
+    </div>
+    <!-- 翻页动画层 -->
+    <div class="flipper flipper-right" id="flipperRight">
+      <div class="flip-page"></div>
+    </div>
+    <div class="flipper flipper-left" id="flipperLeft">
+      <div class="flip-page"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ==========================================================
+  页面内容模板(隐藏,由 JS 移动到页槽中)
+========================================================== -->
+<div id="pagesSource" style="display:none">
+
+<!-- 页 1 · 封面 -->
+<div class="page cover-page" data-title="封面" data-group="cover">
+  <div class="page-inner">
+    <div class="cover-top">
+      <div class="cover-label">A Story of Inner Light</div>
+      <div class="cover-divider"></div>
+    </div>
+    <div class="cover-main">
+      <div class="cover-title"><span class="love-w">LOVE</span><span class="amp">&amp;</span><span class="courage-w">勇气</span></div>
+      <div class="cover-sub">魔法师的两件法器</div>
+      <div class="cover-ornament">✦ &nbsp; ✦ &nbsp; ✦</div>
+    </div>
+    <div class="cover-bottom">
+      <div class="cover-mark">UKEC · 品牌之书</div>
+    </div>
+  </div>
+</div>
+
+<!-- 页 2 · 扉页 -->
+<div class="page title-page" data-title="扉页" data-group="cover">
+  <div class="page-inner">
+    <div class="page-content">
+      <div class="dedication">
+        献给每一个<br/>
+        <em>自己走过一段路</em>的人
+      </div>
+      <div class="opening-poem">
+        我们不会给你爱和勇气——<br/>
+        <em>我们只是陪着你,</em><br/>
+        <em>让你想起:</em><br/>
+        这些,你本来就有。
+      </div>
+      <div class="signature">—— UKEC</div>
+    </div>
+  </div>
+</div>
+
+<!-- 页 3 · 目录页 -->
+<div class="page" data-title="目录" data-group="cover">
+  <div class="page-inner">
+    <div class="page-content toc-page-content" id="tocPageContent">
+      <div class="toc-page-title">目 录</div>
+      <div class="toc-page-sub">Contents</div>
+      <!-- 由 JS 生成 -->
+    </div>
+  </div>
+</div>
+
+<!-- 页 4 · 序言 -->
+<div class="page" data-title="序言" data-group="part1">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part I · 品牌叙事</span>
+      <span class="header-brand">LOVE &amp; 勇气</span>
+    </div>
+    <div class="page-content">
+      <div class="chapter-label"><span class="line"></span><span class="num">Chapter One · 序言</span><span class="line"></span></div>
+      <h2 class="chapter-title">每个人心里, <br/>都有<span class="accent">一段</span>只有自己知道的路</h2>
+      <div class="prose">
+        <p>孩子第一次松开妈妈的手走进教室,少年第一次背着行李去看更远的世界,大人在某个清晨决定换一种活法——</p>
+        <p>每一次出发,都不只是把你送到下一个地方。<br/>它也悄悄,把你带回到自己身上。</p>
+        <p class="gap"><strong>LOVE & 勇气,就是为这些时刻做的。</strong></p>
+      </div>
+    </div>
+    <div class="page-footer">— 4 —</div>
+  </div>
+</div>
+
+<!-- 页 5 · 我们相信什么 -->
+<div class="page" data-title="我们相信什么" data-group="part1">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part I · 品牌叙事</span>
+      <span class="header-brand">LOVE &amp; 勇气</span>
+    </div>
+    <div class="page-content">
+      <div class="chapter-label"><span class="line"></span><span class="num">Chapter Two · 我们相信什么</span><span class="line"></span></div>
+      <h2 class="chapter-title">爱和勇气, <br/>从来都<span class="accent">不是</span>别人能给你的</h2>
+      <div class="prose">
+        <p>你被很多人爱着。但如果心是关着的,这些爱进不来。</p>
+        <p>别人鼓励了你一百次。但如果你还在怕,勇气还是出不来。</p>
+        <p>这是 LOVE & 勇气想说的事——<strong>它们不在外面,在你自己身上。</strong></p>
+      </div>
+      <div class="pullquote">
+        爱,是你愿意打开的那一刻,<br/>才真正进得来。<br/><br/>
+        勇气,从来不是别人递给你的,<br/>是你自己长出来的。
+      </div>
+    </div>
+    <div class="page-footer">— 5 —</div>
+  </div>
+</div>
+
+<!-- 页 6 · 品牌原型 魔法师 -->
+<div class="page" data-title="品牌原型 · 魔法师" data-group="part1">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part I · 品牌叙事</span>
+      <span class="header-brand">LOVE &amp; 勇气</span>
+    </div>
+    <div class="page-content">
+      <div class="chapter-label"><span class="line"></span><span class="num">Chapter Three · 品牌原型</span><span class="line"></span></div>
+      <h2 class="chapter-title">来自<span class="accent">魔法师</span></h2>
+      <div class="prose">
+        <p>每个关于梦想的故事里,都有一个魔法师。</p>
+        <p>但他们做的,不是替主角施展奇迹。是在主角最累、最想放弃的时候,递上一件信物——让他想起,自己其实一直走得动。</p>
+        <p>这是魔法师真正的本事:<strong>他们相信奇迹,但更相信人。</strong></p>
+      </div>
+      <div class="pullquote">
+        每一个认真生活的人,<br/>其实都在做着<br/>一件不那么容易的事。
+      </div>
+      <div class="prose">
+        <p>我们想做的,就是悄悄留在这一路上的——<strong>两件法器。陪你启程,也陪你回来。</strong></p>
+      </div>
+    </div>
+    <div class="page-footer">— 6 —</div>
+  </div>
+</div>
+
+<!-- 页 7 · 两件法器 LOVE -->
+<div class="page" data-title="法器之一 · LOVE" data-group="part1">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part I · 品牌叙事</span>
+      <span class="header-brand">LOVE &amp; 勇气</span>
+    </div>
+    <div class="page-content">
+      <div class="chapter-label"><span class="line"></span><span class="num">Chapter Four · 两件法器(一)</span><span class="line"></span></div>
+      <h2 class="chapter-title">一件叫 <span class="accent">LOVE</span></h2>
+      <div class="artifact-card artifact-love">
+        <div class="artifact-symbol">L</div>
+        <div class="artifact-name">一件叫 LOVE</div>
+        <div class="artifact-stone">Strawberry Quartz · 草莓晶</div>
+        <div class="artifact-body">
+          <p>LOVE 不是让你得到更多的爱。</p>
+          <p>它做的事很简单——帮你重新<strong>打开自己</strong>。</p>
+          <p>因为爱一直都在,只是你太久没让它进来。</p>
+          <p>它会陪你,把那些被忽略的小事重新看见——一份默默留着的饭、一条"记得吃早饭"的消息、食堂阿姨多打的那半勺菜、陌生人在地铁里给你的一个微笑。</p>
+          <p><strong>爱,本来就在这些小小的地方。</strong></p>
+        </div>
+      </div>
+    </div>
+    <div class="page-footer">— 7 —</div>
+  </div>
+</div>
+
+<!-- 页 8 · 两件法器 勇气 -->
+<div class="page" data-title="法器之二 · 勇气" data-group="part1">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part I · 品牌叙事</span>
+      <span class="header-brand">LOVE &amp; 勇气</span>
+    </div>
+    <div class="page-content">
+      <div class="chapter-label"><span class="line"></span><span class="num">Chapter Four · 两件法器(二)</span><span class="line"></span></div>
+      <h2 class="chapter-title">一件叫<span class="accent">勇气</span></h2>
+      <div class="artifact-card artifact-courage">
+        <div class="artifact-symbol">C</div>
+        <div class="artifact-name">一件叫勇气</div>
+        <div class="artifact-stone">Kyanite · 蓝晶石</div>
+        <div class="artifact-body">
+          <p>勇气不是让你变得更厉害。</p>
+          <p>它做的事很简单——帮你把那层壳<strong>卸下来</strong>。</p>
+          <p>我们大多数人之所以累,不是因为不够勇敢,是因为太怕被看穿——怕不够好、怕让人失望、怕承认自己其实有点撑不住。</p>
+          <p>所以我们裹上一层又一层的壳。但壳越厚,心就越没法呼吸。</p>
+          <p><strong>勇气在做的,不是再加一层盔甲。是把不必要的那层,轻轻卸下来。</strong></p>
+        </div>
+      </div>
+    </div>
+    <div class="page-footer">— 8 —</div>
+  </div>
+</div>
+
+<!-- 页 9 · 一对 -->
+<div class="page" data-title="两件法器 · 一对" data-group="part1">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part I · 品牌叙事</span>
+      <span class="header-brand">LOVE &amp; 勇气</span>
+    </div>
+    <div class="page-content">
+      <div class="chapter-label"><span class="line"></span><span class="num">Chapter Four · 两件法器(合)</span><span class="line"></span></div>
+      <h2 class="chapter-title">它们永远<span class="accent">是一对</span></h2>
+      <div class="pair-box">
+        <p>一件让你<span class="love-text">学会打开</span></p>
+        <p>一件让你<span class="courage-text">学会卸下</span></p>
+        <p style="margin-top:14px">一件让<span class="love-text">爱进得来</span></p>
+        <p>一件让<span class="courage-text">力量出得去</span></p>
+        <p>缺一个,都走不远</p>
+      </div>
+      <div class="prose" style="margin-top:24px; font-size:13.5px;">
+        <p>它们做的事,都不是往外抓取,而是往里疏通。</p>
+        <p>因为一个真正能走得远的人——既要能让人进得来,也要敢于做自己。</p>
+      </div>
+    </div>
+    <div class="page-footer">— 9 —</div>
+  </div>
+</div>
+
+<!-- 页 10 · 两只小熊 -->
+<div class="page" data-title="两只小熊" data-group="part1">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part I · 品牌叙事</span>
+      <span class="header-brand">LOVE &amp; 勇气</span>
+    </div>
+    <div class="page-content">
+      <div class="chapter-label"><span class="line"></span><span class="num">Chapter Five · 两只小熊</span><span class="line"></span></div>
+      <h2 class="chapter-title">让法器<span class="accent">有形状</span></h2>
+
+      <div class="bears-visual">
+        <div class="bear-figure bear-love">
+          <svg class="bear-svg" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="38" cy="36" r="14" fill="#E8A8AE"/>
+            <circle cx="38" cy="36" r="7" fill="#F4CACF"/>
+            <circle cx="102" cy="36" r="14" fill="#E8A8AE"/>
+            <circle cx="102" cy="36" r="7" fill="#F4CACF"/>
+            <ellipse cx="70" cy="70" rx="44" ry="40" fill="#E8A8AE"/>
+            <ellipse cx="70" cy="82" rx="26" ry="22" fill="#F4CACF"/>
+            <ellipse cx="56" cy="68" rx="3" ry="4" fill="#3D2E22"/>
+            <ellipse cx="84" cy="68" rx="3" ry="4" fill="#3D2E22"/>
+            <circle cx="57" cy="66" r="1" fill="#FDFAF2"/>
+            <circle cx="85" cy="66" r="1" fill="#FDFAF2"/>
+            <ellipse cx="48" cy="82" rx="5" ry="3" fill="#D88891" opacity="0.5"/>
+            <ellipse cx="92" cy="82" rx="5" ry="3" fill="#D88891" opacity="0.5"/>
+            <ellipse cx="70" cy="80" rx="3" ry="2" fill="#3D2E22"/>
+            <path d="M 66 86 Q 70 89 74 86" stroke="#3D2E22" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M 70 108 L 66 114 L 70 122 L 74 114 Z" fill="#D88891" opacity="0.6"/>
+            <path d="M 70 108 L 66 114 L 70 118 Z" fill="#F4CACF" opacity="0.8"/>
+          </svg>
+          <div class="bear-label">LOVE 小熊</div>
+        </div>
+
+        <div class="bear-figure bear-courage">
+          <svg class="bear-svg" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="38" cy="36" r="14" fill="#8FA8C5"/>
+            <circle cx="38" cy="36" r="7" fill="#B8C8DC"/>
+            <circle cx="102" cy="36" r="14" fill="#8FA8C5"/>
+            <circle cx="102" cy="36" r="7" fill="#B8C8DC"/>
+            <ellipse cx="70" cy="70" rx="44" ry="40" fill="#8FA8C5"/>
+            <ellipse cx="70" cy="82" rx="26" ry="22" fill="#B8C8DC"/>
+            <ellipse cx="56" cy="68" rx="3" ry="4" fill="#3D2E22"/>
+            <ellipse cx="84" cy="68" rx="3" ry="4" fill="#3D2E22"/>
+            <circle cx="57" cy="66" r="1" fill="#FDFAF2"/>
+            <circle cx="85" cy="66" r="1" fill="#FDFAF2"/>
+            <ellipse cx="48" cy="82" rx="5" ry="3" fill="#6B8AAF" opacity="0.35"/>
+            <ellipse cx="92" cy="82" rx="5" ry="3" fill="#6B8AAF" opacity="0.35"/>
+            <ellipse cx="70" cy="80" rx="3" ry="2" fill="#3D2E22"/>
+            <path d="M 66 87 Q 70 89 74 87" stroke="#3D2E22" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+            <path d="M 70 108 L 66 114 L 70 122 L 74 114 Z" fill="#6B8AAF" opacity="0.7"/>
+            <path d="M 70 108 L 66 114 L 70 118 Z" fill="#B8C8DC" opacity="0.9"/>
+          </svg>
+          <div class="bear-label">勇气 小熊</div>
+        </div>
+      </div>
+
+      <div class="prose">
+        <p>法器太远,魔法师只活在故事里。所以我们让这两件法器,<strong>在 UKEC 化身成了两只小熊。</strong></p>
+        <p>柔软的那种小熊。可以塞进书包、放在床头、抱在怀里的那种小熊。</p>
+      </div>
+    </div>
+    <div class="page-footer">— 10 —</div>
+  </div>
+</div>
+
+<!-- 页 11 · UKEC 的家 -->
+<div class="page" data-title="UKEC · 两只小熊的家" data-group="part1">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part I · 品牌叙事</span>
+      <span class="header-brand">LOVE &amp; 勇气</span>
+    </div>
+    <div class="page-content">
+      <div class="chapter-label"><span class="line"></span><span class="num">Chapter Six · 它们的家</span><span class="line"></span></div>
+      <h2 class="chapter-title">叫 <span class="accent">UKEC</span></h2>
+      <div class="prose">
+        <p>UKEC 不只是一个名字。它是这两只小熊的家——<strong>也是一个愿意陪你出发、也等你回来的地方。</strong></p>
+        <p>也许你是第一次离开家的孩子;也许你正在异乡的某个深夜里写论文;也许你正在重新选择自己的方向;也许你只是,想在这个普通的下午,找回一点温柔。</p>
+        <p><strong>不管你是哪一种——走进这里,你不是来买东西。你是来认领一个等了你很久的朋友。</strong></p>
+      </div>
+      <div class="pullquote">
+        天使不是从天上掉下来的——<br/>
+        是因为我们自己先打开了,<br/>
+        他们才走得进来。
+      </div>
+    </div>
+    <div class="page-footer">— 11 —</div>
+  </div>
+</div>
+
+<!-- 页 12 · 叙事核心 -->
+<div class="page" data-title="叙事核心 · 一段话" data-group="part1">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part I · 品牌叙事</span>
+      <span class="header-brand">LOVE &amp; 勇气</span>
+    </div>
+    <div class="page-content">
+      <div class="chapter-label"><span class="line"></span><span class="num">The Essence · 叙事核心</span><span class="line"></span></div>
+      <h2 class="chapter-title">一段话,<br/>记住这个品牌</h2>
+      <div class="core-card">
+        <div class="core-card-inner">
+          <div class="core-card-stamp">The Story in One Breath</div>
+          <p>我们的品牌原型,来自魔法师——不是因为魔法师能施咒,而是因为他们相信:每一个走在路上的人,都比自己以为的更有力量。</p>
+          <p>LOVE & 勇气,就是魔法师留下的两件法器。在 UKEC,它们化成了两只小熊——一只叫 <strong style="color:var(--love-deep)">LOVE</strong>,陪你看见那些被忽略的爱;一只叫<strong style="color:var(--courage-deep)">勇气</strong>,陪你卸下不必要的硬撑。</p>
+          <div class="closing">
+            爱不是得到,是打开。<br/>
+            勇气不是别人给的,是卸下。<br/>
+            这一切,从来都在你心里。
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="page-footer">— 12 —</div>
+  </div>
+</div>
+
+<!-- 页 13 · Part II 扉页 -->
+<div class="page part-page" data-title="Part II · 起源" data-group="part2">
+  <div class="page-inner">
+    <div class="page-content">
+      <div class="part-num">Part Two</div>
+      <div class="part-title">延展 · 起源</div>
+      <div class="part-sub">The Origin of Two Artifacts</div>
+      <div class="part-ornaments">✦ &nbsp;&nbsp; ✦ &nbsp;&nbsp; ✦</div>
+      <p class="part-intro">一个可以讲给所有人听的小故事——<br/>关于魔法师、两件法器,<br/>和它们怎么来到 UKEC。</p>
+    </div>
+    <div class="page-footer">— 13 —</div>
+  </div>
+</div>
+
+<!-- 页 14 · 起源前段 -->
+<div class="page story-page" data-title="起源 · 魔法师与他的秘密" data-group="part2">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part II · 起源</span>
+      <span class="header-brand">两件法器的故事</span>
+    </div>
+    <div class="page-content">
+      <div class="story-header">
+        <div class="tag">A Bedtime Story</div>
+        <div class="title">两件法器的故事</div>
+      </div>
+      <div class="story-prose">
+        <p class="first-para">很久以前,有一位魔法师。</p>
+        <p>他没有城堡,也没有塔楼。他一生都在路上——走过山,走过海,走过很多人最难的那段日子。</p>
+        <p>人们以为他是来施展奇迹的。他们求他给金币、给好运、给一个让烦恼都消失的咒语。</p>
+        <p>但魔法师总是摇摇头,笑一笑。因为他心里有一个秘密:</p>
+        <p class="dramatic">真正的奇迹,不是他施展的。<br/>是每一个愿意相信自己的人,<br/>亲手做出来的。</p>
+      </div>
+    </div>
+    <div class="page-footer">— 14 —</div>
+  </div>
+</div>
+
+<!-- 页 15 · 起源中段 -->
+<div class="page story-page" data-title="起源 · 决定留下法器" data-group="part2">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part II · 起源</span>
+      <span class="header-brand">两件法器的故事</span>
+    </div>
+    <div class="page-content">
+      <div class="story-prose">
+        <p>他只有两件法器。</p>
+        <p>一件,是一颗粉色的晶石,叫 <strong>LOVE</strong>。一件,是一颗深蓝色的晶石,叫 <strong>勇气</strong>。</p>
+        <p>这两件法器很奇怪——它们不发光,不会飞,也不能变出任何东西。它们只做一件事:<strong>让握着它们的人,想起自己心里本来就有的力量。</strong></p>
+        <div class="story-break">✦ &nbsp; ✦ &nbsp; ✦</div>
+        <p>魔法师走过很多地方,见过太多人——出发前犹豫的人,异乡里哭过又擦干眼泪的人,在某个深夜里几乎想放弃的人。</p>
+        <p>他渐渐明白:这个世界最缺的,不是更多的魔法。是<strong>更多让人想起自己的那一刻</strong>。</p>
+        <p class="dramatic">于是有一天,他决定——<br/>把这两件法器留下来。</p>
+      </div>
+    </div>
+    <div class="page-footer">— 15 —</div>
+  </div>
+</div>
+
+<!-- 页 16 · 起源后段 -->
+<div class="page story-page" data-title="起源 · 化身小熊" data-group="part2">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part II · 起源</span>
+      <span class="header-brand">两件法器的故事</span>
+    </div>
+    <div class="page-content">
+      <div class="story-prose">
+        <p>他想了很久,用什么样的形状把它们留下来。宝剑太硬。魔杖太远。写满咒语的书,太沉了。</p>
+        <p>后来他看到一个小孩,抱着一只小熊睡着了。那只小熊又旧又软,可小孩抱得那么紧——好像把整个世界的安全感,都装进了怀里。</p>
+        <p>魔法师笑了。</p>
+        <p class="dramatic">"就是它了。"</p>
+        <p>柔软的、不吓人的、愿意被靠近的、能被好好抱在怀里的。<strong>这才是这两件法器,真正该有的样子。</strong></p>
+        <div class="story-break">✦ &nbsp; ✦ &nbsp; ✦</div>
+        <p>于是他把两件法器,各自注入一只小熊。然后把它们交给了一个地方——一个愿意陪人出发,也愿意等人回来的地方。那个地方,叫 <strong>UKEC</strong>。</p>
+        <p class="dramatic">"请替我,把它们交给对的人。<br/>有缘的人,会自己走来。"</p>
+      </div>
+    </div>
+    <div class="page-footer">— 16 —</div>
+  </div>
+</div>
+
+<!-- 页 17 · Part III 扉页 -->
+<div class="page part-page" data-title="Part III · 四封信" data-group="part3">
+  <div class="page-inner">
+    <div class="page-content">
+      <div class="part-num">Part Three</div>
+      <div class="part-title">延展 · 四封信</div>
+      <div class="part-sub">Letters for Every Journey</div>
+      <div class="part-ornaments">✦ &nbsp;&nbsp; ✦ &nbsp;&nbsp; ✦</div>
+      <p class="part-intro">给不同人生阶段的你。<br/>每一封,<br/>都是把一件法器,<br/>轻轻地,交到你手里。</p>
+    </div>
+    <div class="page-footer">— 17 —</div>
+  </div>
+</div>
+
+<!-- 页 18 · 信一 给孩子 -->
+<div class="page letter-page" data-title="信一 · 给孩子" data-group="part3">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part III · 四封信</span>
+      <span class="header-brand">Letter No. 01</span>
+    </div>
+    <div class="page-content">
+      <div class="letter-head">
+        <div>
+          <div class="letter-meta">Letter No. 01</div>
+          <div class="letter-title">给一个即将上学的孩子</div>
+        </div>
+        <div class="letter-stamp">勇气</div>
+      </div>
+      <div class="letter-body">
+        <p>亲爱的小朋友:</p>
+        <p>你马上就要去一个很大的地方了。那里有很多你不认识的小朋友,很多比你还高的桌子,很多你还不会的字。</p>
+        <p>你可能会有一点点害怕。</p>
+        <p class="emphasis">没关系哦。</p>
+        <p>妈妈和爸爸小时候也怕过。老师小时候也怕过。<strong>所有看起来很厉害的大人,都是从一个有一点点怕怕的小朋友,慢慢长大的。</strong></p>
+        <p>我给你一只小熊。它叫<strong class="letter-courage-accent">勇气</strong>。你可以把它放在书包里。</p>
+        <p>等你心跳得很快的时候,偷偷摸一下它。它会告诉你一个小秘密——</p>
+        <p class="emphasis">"你心里,本来就有勇气哦。"</p>
+      </div>
+      <div class="letter-sign">—— 来自 UKEC,和那位魔法师</div>
+    </div>
+    <div class="page-footer">— 18 —</div>
+  </div>
+</div>
+
+<!-- 页 19 · 信二 给留学生 -->
+<div class="page letter-page" data-title="信二 · 给留学生" data-group="part3">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part III · 四封信</span>
+      <span class="header-brand">Letter No. 02</span>
+    </div>
+    <div class="page-content">
+      <div class="letter-head">
+        <div>
+          <div class="letter-meta">Letter No. 02</div>
+          <div class="letter-title">给一个在远方的留学生</div>
+        </div>
+        <div class="letter-stamp">LOVE · 勇气</div>
+      </div>
+      <div class="letter-body">
+        <p>嗨。<br/>不用回"挺好的"了。在这里,不用。</p>
+        <p>我知道你朋友圈里笑得很灿烂,和爸妈视频的时候声音也很明亮。我也知道,关上电脑之后的那些夜晚,是怎么过来的。</p>
+        <p>你不是非要那么坚强。<strong>你只是在做一件特别了不起的事——一个人,走了很远的路。</strong></p>
+        <p>我给你两只小熊。</p>
+        <p><strong class="letter-love-accent">LOVE</strong> 放你床头。等你觉得很孤单的时候,抱抱它。它会陪你慢慢看见——妈妈那条短信、朋友那个视频、房东太太递过来的那块点心。<strong>爱一直都在,只是这阵子你太累了,没顾得上接住它。</strong></p>
+        <p><strong class="letter-courage-accent">勇气</strong>放你包里。下一次面试、汇报、独自做一件害怕的事之前,握一下它。<strong>真实的你,比那个一直撑着的你,其实更有力量。</strong></p>
+        <p class="emphasis">好好吃饭。好好睡觉。<br/>哭了就哭,累了就歇。</p>
+      </div>
+      <div class="letter-sign">—— UKEC</div>
+    </div>
+    <div class="page-footer">— 19 —</div>
+  </div>
+</div>
+
+<!-- 页 20 · 信三 给求职者 -->
+<div class="page letter-page" data-title="信三 · 给求职者" data-group="part3">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part III · 四封信</span>
+      <span class="header-brand">Letter No. 03</span>
+    </div>
+    <div class="page-content">
+      <div class="letter-head">
+        <div>
+          <div class="letter-meta">Letter No. 03</div>
+          <div class="letter-title">给一个正在找工作的年轻人</div>
+        </div>
+        <div class="letter-stamp">勇气</div>
+      </div>
+      <div class="letter-body">
+        <p>你好。</p>
+        <p>我不知道你今天是第几次打开招聘软件了。不知道你投了多少份简历,收到了多少个"我们会再联系您"。</p>
+        <p class="emphasis">被拒绝的,不是你这个人。<br/>是你和那家公司,<br/>这一次,刚好没对上。</p>
+        <p>你已经做了很多了。改了那么多次简历,在镜子前练过那么多次自我介绍。<strong>这些时间,没有一秒是白费的。</strong></p>
+        <p>我想把这只小熊递给你——<strong class="letter-courage-accent">勇气</strong>。</p>
+        <p>它做的事不大——<strong>就是在你下次推开面试间那扇门之前,帮你把"我必须完美"的那层壳,轻轻卸下来。</strong></p>
+        <p class="emphasis">因为最好的机会,<br/>不会给一个努力扮演完美的人。<br/>它会给那个,<br/>终于愿意做自己的人。</p>
+      </div>
+      <div class="letter-sign">—— UKEC</div>
+    </div>
+    <div class="page-footer">— 20 —</div>
+  </div>
+</div>
+
+<!-- 页 21 · 信四 给大人 -->
+<div class="page letter-page" data-title="信四 · 给重新出发的大人" data-group="part3">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part III · 四封信</span>
+      <span class="header-brand">Letter No. 04</span>
+    </div>
+    <div class="page-content">
+      <div class="letter-head">
+        <div>
+          <div class="letter-meta">Letter No. 04</div>
+          <div class="letter-title">给一个重新出发的大人</div>
+        </div>
+        <div class="letter-stamp">LOVE · 勇气</div>
+      </div>
+      <div class="letter-body">
+        <p>你好啊。</p>
+        <p>有人结婚了,有人离婚了,有人刚丢了一份工作,有人正在犹豫要不要搬到另一个城市。有人某天看着镜子里的自己,突然认不出来——</p>
+        <p class="emphasis">"我是什么时候开始,<br/>活成这个样子的?"</p>
+        <p>你不是一个人。<strong>每个到了某个年纪的人,都会在某个深夜,问过自己一样的话。</strong></p>
+        <p>但你不用重新变成谁。<strong>你只需要,重新想起,你本来是谁。</strong></p>
+        <p>我给你两只小熊。<strong class="letter-love-accent">LOVE</strong> 陪你看见那些一直在爱你的人——也包括你自己。<strong class="letter-courage-accent">勇气</strong>陪你卸下那些,你早就不想背着的东西。</p>
+        <p class="emphasis">慢慢来。<br/>人生是可以重新开始的。<br/>不止年轻时可以。</p>
+      </div>
+      <div class="letter-sign">—— UKEC</div>
+    </div>
+    <div class="page-footer">— 21 —</div>
+  </div>
+</div>
+
+<!-- 页 22 · Part IV 扉页 -->
+<div class="page part-page" data-title="Part IV · 双熊独白" data-group="part4">
+  <div class="page-inner">
+    <div class="page-content">
+      <div class="part-num">Part Four</div>
+      <div class="part-title">延展 · 双熊独白</div>
+      <div class="part-sub">What the Bears Want to Say</div>
+      <div class="part-ornaments">✦ &nbsp;&nbsp; ✦ &nbsp;&nbsp; ✦</div>
+      <p class="part-intro">当你把它们带回家——<br/>它们心里,<br/>其实一直,<br/>想对你说这些话。</p>
+    </div>
+    <div class="page-footer">— 22 —</div>
+  </div>
+</div>
+
+<!-- 页 23 · LOVE 独白 -->
+<div class="page monologue-page love-bg" data-title="LOVE 独白" data-group="part4">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part IV · 双熊独白</span>
+      <span class="header-brand">LOVE 的出厂独白</span>
+    </div>
+    <div class="page-content">
+      <div class="mon-header">
+        <svg class="mon-icon" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="38" cy="36" r="14" fill="#E8A8AE"/>
+          <circle cx="38" cy="36" r="7" fill="#F4CACF"/>
+          <circle cx="102" cy="36" r="14" fill="#E8A8AE"/>
+          <circle cx="102" cy="36" r="7" fill="#F4CACF"/>
+          <ellipse cx="70" cy="70" rx="44" ry="40" fill="#E8A8AE"/>
+          <ellipse cx="70" cy="82" rx="26" ry="22" fill="#F4CACF"/>
+          <ellipse cx="56" cy="68" rx="3" ry="4" fill="#3D2E22"/>
+          <ellipse cx="84" cy="68" rx="3" ry="4" fill="#3D2E22"/>
+          <circle cx="57" cy="66" r="1" fill="#FDFAF2"/>
+          <circle cx="85" cy="66" r="1" fill="#FDFAF2"/>
+          <ellipse cx="48" cy="82" rx="5" ry="3" fill="#D88891" opacity="0.5"/>
+          <ellipse cx="92" cy="82" rx="5" ry="3" fill="#D88891" opacity="0.5"/>
+          <ellipse cx="70" cy="80" rx="3" ry="2" fill="#3D2E22"/>
+          <path d="M 66 86 Q 70 89 74 86" stroke="#3D2E22" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <div class="mon-tag">Monologue · 出厂的第一句话</div>
+          <div class="mon-name">LOVE 小熊</div>
+        </div>
+      </div>
+      <div class="mon-body">
+        <p class="zh">嗨,是你呀。</p>
+        <p class="zh">我在 UKEC 等了很久。看过很多人路过我面前——有些只是看了一眼,有些停下来又走开了。<strong>没关系的。</strong>是你的人,总会自己走来。</p>
+        <p class="zh">而今天,是你走过来的。</p>
+        <div class="mon-break">✦ ✦ ✦</div>
+        <p class="zh">我想先告诉你一件事——我不是来给你更多的爱的。</p>
+        <p class="whisper">我是来陪你,<br/>慢慢学会,<br/>把自己打开。</p>
+        <p class="zh">因为爱一直都在。妈妈的担心里有,朋友随口的玩笑里有,陌生人对你笑一下的瞬间里也有。<strong>只是你最近,没空看见它们而已。</strong></p>
+        <p class="whisper">我不会问你为什么。<br/>我只会,在。</p>
+      </div>
+      <div class="mon-sign">—— 你的 LOVE</div>
+    </div>
+    <div class="page-footer">— 23 —</div>
+  </div>
+</div>
+
+<!-- 页 24 · 勇气 独白 -->
+<div class="page monologue-page courage-bg" data-title="勇气 独白" data-group="part4">
+  <div class="page-inner">
+    <div class="page-header">
+      <span>Part IV · 双熊独白</span>
+      <span class="header-brand">勇气的出厂独白</span>
+    </div>
+    <div class="page-content">
+      <div class="mon-header">
+        <svg class="mon-icon" viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="38" cy="36" r="14" fill="#8FA8C5"/>
+          <circle cx="38" cy="36" r="7" fill="#B8C8DC"/>
+          <circle cx="102" cy="36" r="14" fill="#8FA8C5"/>
+          <circle cx="102" cy="36" r="7" fill="#B8C8DC"/>
+          <ellipse cx="70" cy="70" rx="44" ry="40" fill="#8FA8C5"/>
+          <ellipse cx="70" cy="82" rx="26" ry="22" fill="#B8C8DC"/>
+          <ellipse cx="56" cy="68" rx="3" ry="4" fill="#3D2E22"/>
+          <ellipse cx="84" cy="68" rx="3" ry="4" fill="#3D2E22"/>
+          <circle cx="57" cy="66" r="1" fill="#FDFAF2"/>
+          <circle cx="85" cy="66" r="1" fill="#FDFAF2"/>
+          <ellipse cx="48" cy="82" rx="5" ry="3" fill="#6B8AAF" opacity="0.35"/>
+          <ellipse cx="92" cy="82" rx="5" ry="3" fill="#6B8AAF" opacity="0.35"/>
+          <ellipse cx="70" cy="80" rx="3" ry="2" fill="#3D2E22"/>
+          <path d="M 66 87 Q 70 89 74 87" stroke="#3D2E22" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+        </svg>
+        <div>
+          <div class="mon-tag">Monologue · 出厂的第一句话</div>
+          <div class="mon-name">勇气 小熊</div>
+        </div>
+      </div>
+      <div class="mon-body">
+        <p class="zh">嘿。<br/>终于见面了。</p>
+        <p class="zh">我也在这里很久了。这些年看过很多人——有些人伸手摸过我又收了回去。<strong>我知道,他们只是还没准备好。</strong></p>
+        <p class="zh">今天来的人,是你。我想——<strong>应该,就是你了。</strong></p>
+        <div class="mon-break">✦ ✦ ✦</div>
+        <p class="zh">我也想先说清楚——我不是来给你勇气的。你以为自己缺勇气?<strong>不是的。</strong></p>
+        <p class="whisper">我是来帮你,<br/>把那层早就不想穿着的壳,<br/>一点一点,卸下来。</p>
+        <p class="zh">因为当你终于愿意承认——"我也会怕。""我也会累。""我其实不知道该怎么办。"——你心里那股<strong>真正的力量</strong>,才会自己浮上来。</p>
+        <p class="whisper">我不会替你推开那扇门。<br/>但我会让你知道——<br/>推开它的力气,你一直就有。</p>
+      </div>
+      <div class="mon-sign">—— 你的勇气</div>
+    </div>
+    <div class="page-footer">— 24 —</div>
+  </div>
+</div>
+
+<!-- 页 25 · 结语 -->
+<div class="page ending-page" data-title="结语" data-group="ending">
+  <div class="page-inner">
+    <div class="page-content">
+      <div class="chapter-label"><span class="line"></span><span class="num">Coda · 结语</span><span class="line"></span></div>
+      <div class="ending-motto">
+        <span class="love">爱</span>不是得到。<br/>
+        <span class="soft">是把自己打开,</span><br/>
+        <span class="soft">让它进得来。</span><br/><br/>
+        <span class="courage">勇气</span>不是谁给你的。<br/>
+        <span class="soft">是把自己放下来,</span><br/>
+        <span class="soft">让它,自己长出来。</span><br/><br/>
+        而这一切,<br/>
+        <span class="soft">从来都在,</span><br/>
+        <span class="soft">你心里。</span>
+      </div>
+      <div class="ending-sig">UKEC · LOVE & 勇气</div>
+    </div>
+    <div class="page-footer">— 25 —</div>
+  </div>
+</div>
+
+<!-- 页 26 · 封底 -->
+<div class="page backcover-page" data-title="封底" data-group="ending">
+  <div class="page-inner">
+    <div class="page-content">
+      <div class="backcover-mark"><span class="love">LOVE</span><span class="amp">&amp;</span><span class="courage">勇气</span></div>
+      <div class="backcover-text">
+        我们只是陪着你,<br/>
+        让你记起——<br/><br/>
+        这些,<br/>
+        你本来就有。
+      </div>
+    </div>
+    <div class="backcover-stamp">UKEC · 品牌之书</div>
+  </div>
+</div>
+
+</div>
+
+<script>
+/* =========================================================
+   翻页音效(Web Audio 合成纸张声)
+========================================================= */
+let audioCtx = null;
+let soundEnabled = true;
+
+function initAudio() {
+  if (audioCtx) return;
+  try {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  } catch(e) { audioCtx = null; }
+}
+
+function playFlip() {
+  if (!soundEnabled || !audioCtx) return;
+  const now = audioCtx.currentTime;
+  const duration = 0.35;
+
+  // 白噪音缓冲
+  const bufferSize = audioCtx.sampleRate * duration;
+  const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+  const data = buffer.getChannelData(0);
+  for (let i = 0; i < bufferSize; i++) {
+    const t = i / bufferSize;
+    // 衰减的噪音,模拟纸张摩擦
+    const envelope = Math.pow(1 - t, 2);
+    data[i] = (Math.random() * 2 - 1) * envelope * 0.35;
+  }
+
+  const noise = audioCtx.createBufferSource();
+  noise.buffer = buffer;
+
+  // 带通滤波 — 模拟纸张的频率特征
+  const filter = audioCtx.createBiquadFilter();
+  filter.type = 'bandpass';
+  filter.frequency.value = 2500;
+  filter.Q.value = 0.8;
+
+  const highpass = audioCtx.createBiquadFilter();
+  highpass.type = 'highpass';
+  highpass.frequency.value = 800;
+
+  const gain = audioCtx.createGain();
+  gain.gain.setValueAtTime(0.15, now);
+  gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+
+  noise.connect(filter).connect(highpass).connect(gain).connect(audioCtx.destination);
+  noise.start(now);
+  noise.stop(now + duration);
+}
+
+/* =========================================================
+   书签功能(localStorage)
+========================================================= */
+const BM_KEY = 'love-courage-book-bookmark';
+
+function saveBookmark(page) {
+  try { localStorage.setItem(BM_KEY, String(page)); } catch(e) {}
+}
+function loadBookmark() {
+  try {
+    const v = localStorage.getItem(BM_KEY);
+    return v ? parseInt(v, 10) : null;
+  } catch(e) { return null; }
+}
+
+/* =========================================================
+   书籍主控
+========================================================= */
+const pagesSource = document.getElementById('pagesSource');
+const allPages = Array.from(pagesSource.querySelectorAll('.page'));
+const totalPages = allPages.length;
+
+const slotLeft = document.getElementById('slotLeft');
+const slotRight = document.getElementById('slotRight');
+
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const pageCounter = document.getElementById('pageCounter');
+const progressFill = document.getElementById('progressFill');
+const flipperRight = document.getElementById('flipperRight');
+const flipperLeft = document.getElementById('flipperLeft');
+const flipPageRight = flipperRight.querySelector('.flip-page');
+const flipPageLeft = flipperLeft.querySelector('.flip-page');
+
+// 当前显示的"右页索引"(0-based)
+// 桌面双页对开:左页 = 右页 - 1
+// 手机单页:只看右页
+let currentRight = 0;
+let isFlipping = false;
+
+function isMobile() { return window.innerWidth <= 900; }
+
+function getPageEl(index) {
+  if (index < 0 || index >= totalPages) return null;
+  return allPages[index].cloneNode(true);
+}
+
+function renderSpread(rightIdx, animate) {
+  // 清空页槽
+  slotLeft.innerHTML = '';
+  slotRight.innerHTML = '';
+
+  const mobile = isMobile();
+
+  if (mobile) {
+    const page = getPageEl(rightIdx);
+    if (page) {
+      page.classList.add('active');
+      slotRight.appendChild(page);
+    }
+  } else {
+    const leftIdx = rightIdx - 1;
+    if (leftIdx >= 0) {
+      const lp = getPageEl(leftIdx);
+      if (lp) {
+        lp.classList.add('active');
+        slotLeft.appendChild(lp);
+      }
+    }
+    const rp = getPageEl(rightIdx);
+    if (rp) {
+      rp.classList.add('active');
+      slotRight.appendChild(rp);
+    }
+  }
+
+  // 对可见页做自适应缩放,双重保险防止字体加载导致测量误差
+  requestAnimationFrame(() => {
+    document.querySelectorAll('.page-slot > .page.active').forEach(fitPageContent);
+    setTimeout(refitAll, 180);
+  });
+
+  updateUI();
+  saveBookmark(rightIdx);
+}
+
+/* 自适应:如果内容超出可视区域,等比缩放 page-content */
+function fitPageContent(pageEl) {
+  if (!pageEl) return;
+  const inner = pageEl.querySelector('.page-inner');
+  const content = pageEl.querySelector('.page-content');
+  if (!inner || !content) return;
+
+  // 重置之前的缩放,才能正确测量
+  content.style.transform = '';
+  content.style.width = '';
+  content.style.height = '';
+  content.style.marginLeft = '';
+
+  // 强制 reflow 以获得准确测量
+  void inner.offsetHeight;
+
+  // 比较内部完整高度 vs 可视高度
+  const innerScrollH = inner.scrollHeight;
+  const innerClientH = inner.clientHeight;
+
+  if (innerScrollH <= innerClientH + 1) return; // 没有溢出
+
+  const contentScrollH = content.scrollHeight;
+  const overflow = innerScrollH - innerClientH;
+  const targetH = contentScrollH - overflow - 4; // 留 4px 余量
+
+  if (contentScrollH <= 0 || targetH <= 0) return;
+
+  let scale = targetH / contentScrollH;
+  // 缩放下限放宽到 0.5,极密集页也能装下
+  scale = Math.max(0.5, Math.min(1, scale));
+
+  if (scale < 0.999) {
+    content.style.transform = `scale(${scale.toFixed(3)})`;
+    content.style.transformOrigin = 'top center';
+    content.style.width = (100 / scale) + '%';
+    content.style.marginLeft = `-${(100 / scale - 100) / 2}%`;
+  }
+}
+
+// 重新对所有可见页做适配(用于视口变化、字体加载完成等场景)
+function refitAll() {
+  document.querySelectorAll('.page-slot > .page.active').forEach(fitPageContent);
+}
+
+// 把任意目标页索引对齐到 current 的正确位置:
+// 桌面 — 右页必须是奇数索引(1,3,5...)以维持对开
+// 移动 — 任意即可
+function alignIndex(idx) {
+  if (isMobile()) return idx;
+  // 桌面下:如果 idx 是偶数,把它调成 idx+1(下一页),表示"左偶右奇"的对页
+  // 但要保证不越界;并且封面(0)是单独一页,应保持在右侧不配对
+  if (idx === 0) return 0;            // 封面独占右页
+  if (idx % 2 === 0) return idx + 1 < totalPages ? idx + 1 : idx - 1;
+  return idx;
+}
+
+function updateUI() {
+  const mobile = isMobile();
+  if (mobile || currentRight === 0) {
+    pageCounter.textContent = `${currentRight + 1} / ${totalPages}`;
+  } else {
+    const left = currentRight; // 左页索引(0-based)= currentRight - 1 + 1 …其实我们让右页=奇,左页=偶,所以左页展示的是 currentRight,右页是 currentRight+1。但我们这里的 currentRight 变量指的就是"当前视图的右页索引",也就是奇数。所以显示 [currentRight, currentRight+1]
+    // 等等,我们的 currentRight 在 renderSpread 里定义为右页索引,左页索引 = currentRight - 1
+    // 所以显示左-右 = (currentRight) 到 (currentRight + 1)?不对
+    // 让我重新想:currentRight 表示右页的索引(在 allPages 数组里的 0-based 位置)
+    // 显示时页码 = 索引 + 1,所以左页页码 = currentRight,右页页码 = currentRight + 1
+    const leftNum = currentRight;        // 左页的"页码"(1-based)= (currentRight - 1) + 1 = currentRight
+    const rightNum = currentRight + 1;   // 右页的"页码"= currentRight + 1
+    pageCounter.textContent = `${leftNum}–${rightNum} / ${totalPages}`;
+  }
+  const pct = ((currentRight + 1) / totalPages) * 100;
+  progressFill.style.width = pct + '%';
+
+  prevBtn.disabled = currentRight <= 0;
+  nextBtn.disabled = currentRight >= totalPages - 1;
+
+  document.querySelectorAll('.toc-item').forEach(it => {
+    const p = parseInt(it.dataset.page, 10);
+    it.classList.toggle('current', p === currentRight || p === currentRight - 1);
+  });
+}
+
+function flipTo(newIdx, direction) {
+  if (isFlipping) return;
+  if (newIdx < 0 || newIdx >= totalPages) return;
+  if (newIdx === currentRight) return;
+
+  const mobile = isMobile();
+  const flipper = direction === 'forward' ? flipperRight : flipperLeft;
+  const flipPage = direction === 'forward' ? flipPageRight : flipPageLeft;
+
+  // 准备:先把"被翻走的那页"内容放到 flipPage 里
+  // forward:被翻的是当前右页
+  // backward:被翻的是当前左页(桌面)或当前页(移动)
+  let displayPageIdx;
+  if (direction === 'forward') {
+    displayPageIdx = currentRight;
+  } else {
+    displayPageIdx = mobile ? currentRight : (currentRight - 1);
+  }
+  if (displayPageIdx < 0) displayPageIdx = 0;
+
+  const srcPage = getPageEl(displayPageIdx);
+  if (!srcPage) return;
+
+  isFlipping = true;
+
+  // 1) 先重置 flipper / flip-page 到干净状态(无 transition)
+  flipper.classList.remove('flipping');
+  flipPage.style.transition = 'none';
+  flipPage.style.transform = 'rotateY(0deg)';
+  flipPage.innerHTML = '';
+  srcPage.classList.add('active');
+  flipPage.appendChild(srcPage);
+
+  // 2) 强制 reflow,让浏览器应用上面的"重置"
+  // eslint-disable-next-line no-unused-expressions
+  flipPage.offsetHeight;
+
+  // 3) 下一帧:恢复 transition、清除内联 transform(让 CSS .flipping 接管)、启动翻页
+  requestAnimationFrame(() => {
+    flipPage.style.transition = '';
+    flipPage.style.transform = '';
+    flipper.classList.add('flipping');
+    playFlip();
+  });
+
+  // 4) 中途(约 350ms,即动画到 90° 翻过去的那一刻)更新底下的 spread
+  setTimeout(() => {
+    currentRight = newIdx;
+    renderSpread(currentRight, false);
+  }, 360);
+
+  // 5) 动画彻底结束后,清理 flipper
+  setTimeout(() => {
+    // 先瞬时重置到 0(无 transition),避免反弹时闪烁
+    flipPage.style.transition = 'none';
+    flipPage.style.transform = 'rotateY(0deg)';
+    flipPage.innerHTML = '';
+    flipper.classList.remove('flipping');
+    // 再下一帧恢复 transition
+    requestAnimationFrame(() => {
+      flipPage.style.transition = '';
+    });
+    isFlipping = false;
+  }, 760);
+}
+
+function goNext() {
+  const mobile = isMobile();
+  if (mobile) {
+    // 移动端:一页一页翻
+    if (currentRight + 1 < totalPages) {
+      flipTo(currentRight + 1, 'forward');
+    }
+    return;
+  }
+  // 桌面双页:翻一整对
+  // 封面(0)特殊:翻到下一页(1)进入左偶右奇模式,但 align 会把它处理好
+  let target;
+  if (currentRight === 0) {
+    target = 1; // 从封面翻到扉页(1)
+  } else {
+    target = currentRight + 2;
+  }
+  target = Math.min(target, totalPages - 1);
+  target = alignIndex(target);
+  if (target !== currentRight) flipTo(target, 'forward');
+}
+
+function goPrev() {
+  const mobile = isMobile();
+  if (mobile) {
+    if (currentRight - 1 >= 0) {
+      flipTo(currentRight - 1, 'backward');
+    }
+    return;
+  }
+  // 桌面双页:往回翻一整对
+  let target;
+  if (currentRight === 1) {
+    target = 0; // 回到封面
+  } else {
+    target = currentRight - 2;
+  }
+  target = Math.max(target, 0);
+  target = alignIndex(target);
+  if (target !== currentRight) flipTo(target, 'backward');
+}
+
+function jumpTo(idx) {
+  const aligned = alignIndex(idx);
+  if (aligned === currentRight || isFlipping) return;
+  // 跳转不用翻页动画,直接淡入
+  currentRight = aligned;
+  renderSpread(currentRight, false);
+  playFlip();
+}
+
+/* =========================================================
+   目录生成
+========================================================= */
+const groupNames = {
+  cover: '开篇',
+  part1: 'Part I · 品牌叙事',
+  part2: 'Part II · 起源',
+  part3: 'Part III · 四封信',
+  part4: 'Part IV · 双熊独白',
+  ending: '结尾'
+};
+
+// 侧栏目录
+function buildSideTOC() {
+  const list = document.getElementById('tocList');
+  let lastGroup = null;
+  allPages.forEach((p, i) => {
+    const title = p.dataset.title;
+    const group = p.dataset.group;
+    if (group !== lastGroup) {
+      const h = document.createElement('li');
+      h.className = 'toc-part';
+      h.textContent = groupNames[group] || group;
+      list.appendChild(h);
+      lastGroup = group;
+    }
+    const li = document.createElement('li');
+    li.className = 'toc-item';
+    li.dataset.page = i;
+    li.innerHTML = `<span class="toc-num">${String(i + 1).padStart(2, '0')}</span><span>${title}</span>`;
+    li.addEventListener('click', () => {
+      jumpTo(i);
+      closeTOC();
+    });
+    list.appendChild(li);
+  });
+}
+
+// 目录页
+function buildTocPage() {
+  const wrap = document.getElementById('tocPageContent');
+  let html = `<div class="toc-page-title">目 录</div><div class="toc-page-sub">Contents</div>`;
+  let lastGroup = null;
+  let currentGroupHtml = '';
+  const groups = {};
+  allPages.forEach((p, i) => {
+    const g = p.dataset.group;
+    if (!groups[g]) groups[g] = [];
+    groups[g].push({ idx: i, title: p.dataset.title });
+  });
+  for (const g of ['cover', 'part1', 'part2', 'part3', 'part4', 'ending']) {
+    if (!groups[g]) continue;
+    html += `<div class="toc-page-group">`;
+    html += `<div class="toc-page-group-title">${groupNames[g]}</div>`;
+    groups[g].forEach(p => {
+      html += `<div class="toc-page-entry" data-page="${p.idx}">
+        <span class="name">${p.title}</span>
+        <span class="dots"></span>
+        <span class="pageno">${p.idx + 1}</span>
+      </div>`;
+    });
+    html += `</div>`;
+  }
+  wrap.innerHTML = html;
+  wrap.querySelectorAll('.toc-page-entry').forEach(el => {
+    el.addEventListener('click', () => {
+      const p = parseInt(el.dataset.page, 10);
+      jumpTo(p);
+    });
+  });
+}
+
+/* =========================================================
+   目录侧栏
+========================================================= */
+const tocPanel = document.getElementById('tocPanel');
+const tocBackdrop = document.getElementById('tocBackdrop');
+const tocBtn = document.getElementById('tocBtn');
+const tocClose = document.getElementById('tocClose');
+
+function openTOC() {
+  tocPanel.classList.add('open');
+  tocBackdrop.classList.add('show');
+  tocBtn.classList.add('active');
+}
+function closeTOC() {
+  tocPanel.classList.remove('open');
+  tocBackdrop.classList.remove('show');
+  tocBtn.classList.remove('active');
+}
+
+tocBtn.addEventListener('click', () => {
+  if (tocPanel.classList.contains('open')) closeTOC();
+  else openTOC();
+});
+tocClose.addEventListener('click', closeTOC);
+tocBackdrop.addEventListener('click', closeTOC);
+
+/* =========================================================
+   书签
+========================================================= */
+const bookmarkBtn = document.getElementById('bookmarkBtn');
+bookmarkBtn.addEventListener('click', () => {
+  saveBookmark(currentRight);
+  bookmarkBtn.classList.add('active');
+  const tip = document.createElement('div');
+  tip.textContent = `已记住第 ${currentRight + 1} 页`;
+  tip.style.cssText = `
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: rgba(26,19,13,0.9); color: #FAF4E8;
+    padding: 10px 20px; border-radius: 100px;
+    font-family: var(--ff-display); font-style: italic;
+    font-size: 13px; letter-spacing: 0.1em; z-index: 200;
+    opacity: 0; transition: opacity 0.4s;
+    border: 1px solid rgba(200,157,92,0.35);
+  `;
+  document.body.appendChild(tip);
+  requestAnimationFrame(() => tip.style.opacity = '1');
+  setTimeout(() => {
+    tip.style.opacity = '0';
+    setTimeout(() => tip.remove(), 400);
+    bookmarkBtn.classList.remove('active');
+  }, 1600);
+});
+
+/* =========================================================
+   音效开关
+========================================================= */
+const soundBtn = document.getElementById('soundBtn');
+const soundOn = document.getElementById('soundOn');
+const soundOff = document.getElementById('soundOff');
+
+soundBtn.addEventListener('click', () => {
+  soundEnabled = !soundEnabled;
+  soundOn.style.display = soundEnabled ? '' : 'none';
+  soundOff.style.display = soundEnabled ? 'none' : '';
+});
+
+/* =========================================================
+   按钮 & 键盘 & 滑动
+========================================================= */
+prevBtn.addEventListener('click', () => {
+  initAudio();
+  goPrev();
+});
+nextBtn.addEventListener('click', () => {
+  initAudio();
+  goNext();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.key === 'ArrowLeft') { initAudio(); goPrev(); }
+  else if (e.key === 'ArrowRight') { initAudio(); goNext(); }
+  else if (e.key === 'Escape') closeTOC();
+  else if (e.key === 'm' || e.key === 'M') {
+    if (tocPanel.classList.contains('open')) closeTOC();
+    else openTOC();
+  }
+});
+
+// 简易触摸滑动(移动端体验更顺)
+let touchStartX = null;
+document.addEventListener('touchstart', (e) => {
+  if (e.target.closest('.toc-panel, .bottombar, .nav-btn')) return;
+  touchStartX = e.touches[0].clientX;
+}, { passive: true });
+document.addEventListener('touchend', (e) => {
+  if (touchStartX === null) return;
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 50) {
+    initAudio();
+    if (dx < 0) goNext(); else goPrev();
+  }
+  touchStartX = null;
+}, { passive: true });
+
+/* =========================================================
+   响应式:窗口大小变化时重新渲染
+========================================================= */
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    currentRight = alignIndex(currentRight);
+    renderSpread(currentRight, false);
+  }, 200);
+});
+
+// 字体加载完成后重新 fit(有些字体加载晚,字号会变,影响溢出测量)
+if (document.fonts && document.fonts.ready) {
+  document.fonts.ready.then(() => {
+    requestAnimationFrame(refitAll);
+  });
+}
+
+/* =========================================================
+   初始化
+========================================================= */
+buildSideTOC();
+buildTocPage();
+
+// 恢复书签或从 0 开始
+const bookmarked = loadBookmark();
+if (bookmarked !== null && bookmarked > 0 && bookmarked < totalPages) {
+  currentRight = bookmarked;
+}
+// 对齐到正确的对页位置
+currentRight = alignIndex(currentRight);
+
+renderSpread(currentRight, false);
+
+// 用户首次点击时启动音频上下文
+document.addEventListener('click', initAudio, { once: true });
+document.addEventListener('keydown', initAudio, { once: true });
+</script>
+
+</body>
+</html>
